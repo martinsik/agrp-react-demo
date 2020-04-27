@@ -1,0 +1,7 @@
+query getList($id: String) {
+    getList(id: $id) {
+        id
+        name
+        type
+    }
+}

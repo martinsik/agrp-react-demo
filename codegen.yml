@@ -1,0 +1,16 @@
+schema: https://react-test.atlasconsulting.cz/graphql
+overwrite: true
+documents: ./src/**/*.graphql
+generates:
+  ./src/graphql/types.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-react-apollo
+    config:
+      declarationKind: 'interface'
+      namingConvention:
+        transformUnderscore: true
+      withComponent: false
+      withHOC: false
+      withHooks: true

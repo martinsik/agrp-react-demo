@@ -1,0 +1,7 @@
+query getFile($id: String!) {
+    getFile(id: $id) {
+        id
+        name
+        text
+    }
+}

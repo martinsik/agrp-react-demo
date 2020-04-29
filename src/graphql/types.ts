@@ -51,6 +51,19 @@ export interface File {
   text: Scalars['String'];
 }
 
+export type GetFileQueryVariables = {
+  id: Scalars['String'];
+};
+
+
+export type GetFileQuery = (
+  { __typename?: 'Query' }
+  & { getFile: (
+    { __typename?: 'File' }
+    & Pick<File, 'id' | 'name' | 'text'>
+  ) }
+);
+
 export type GetListQueryVariables = {
   id?: Maybe<Scalars['String']>;
 };
@@ -65,6 +78,41 @@ export type GetListQuery = (
 );
 
 
+export const GetFileDocument = gql`
+    query getFile($id: String!) {
+  getFile(id: $id) {
+    id
+    name
+    text
+  }
+}
+    `;
+
+/**
+ * __useGetFileQuery__
+ *
+ * To run a query within a React component, call `useGetFileQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetFileQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetFileQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useGetFileQuery(baseOptions?: ApolloReactHooks.QueryHookOptions<GetFileQuery, GetFileQueryVariables>) {
+        return ApolloReactHooks.useQuery<GetFileQuery, GetFileQueryVariables>(GetFileDocument, baseOptions);
+      }
+export function useGetFileLazyQuery(baseOptions?: ApolloReactHooks.LazyQueryHookOptions<GetFileQuery, GetFileQueryVariables>) {
+          return ApolloReactHooks.useLazyQuery<GetFileQuery, GetFileQueryVariables>(GetFileDocument, baseOptions);
+        }
+export type GetFileQueryHookResult = ReturnType<typeof useGetFileQuery>;
+export type GetFileLazyQueryHookResult = ReturnType<typeof useGetFileLazyQuery>;
+export type GetFileQueryResult = ApolloReactCommon.QueryResult<GetFileQuery, GetFileQueryVariables>;
 export const GetListDocument = gql`
     query getList($id: String) {
   getList(id: $id) {

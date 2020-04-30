@@ -3,21 +3,44 @@ import { BrowserRouter as Router, Switch, Route, useHistory, useParams } from 'r
 import { Layout } from 'antd';
 import ApolloClient from 'apollo-boost';
 import { ApolloProvider } from '@apollo/react-hooks';
+// import { InMemoryCache } from 'apollo-cache-inmemory';
 
 import { FileTree } from './components/FileTree';
 import { ContentTabsContainer } from './components/ContentTabs';
 import { NoFileSelected } from './components/NoFileSelected';
+import { CacheActions, CacheActionTypes, CachedPage } from './types';
 
 import './App.scss';
 import styles from './App.module.scss';
 
+
 const CACHE_TREE_KEY = 'cache-tree-key';
 export const FileIdDispatch = React.createContext<{ fileId: string | null, dispatchFileId: (fileId: string) => void }>(null as any);
-export const CacheTreeDispatch = React.createContext<{ cachedTree: any[], dispatchCache: (fileId: string) => void }>(null as any);
+export const CacheTreeDispatch = React.createContext<{ cachedPage: CachedPage, dispatchCacheAction: (action: CacheActions) => void }>(null as any);
+
+const loadPageCache = () => JSON.parse(localStorage.getItem(CACHE_TREE_KEY) || '{}');
+let cachedPage = loadPageCache();
 
 const client = new ApolloClient({
   uri: 'https://react-test.atlasconsulting.cz/graphql',
+  // cache: new InMemoryCache(),
 });
+
+const cacheReducer = (cache: CachedPage, action: CacheActions) => {
+  switch (action.type) {
+    case CacheActionTypes.FileTree:
+      return {
+        ...cache,
+        fileTree: action.payload,
+      };
+
+    case CacheActionTypes.Tabs:
+      return {
+        ...cache,
+        tabs: action.payload,
+      };
+  }
+};
 
 const App = () => {
   return (
@@ -43,19 +66,16 @@ const AppLayout = () => {
     history.push(`/${fileId}`);
   }, [ history ]);
 
-  const dispatchCache = (tree) => {
-    localStorage.setItem(CACHE_TREE_KEY, JSON.stringify(tree));
-  }
-
-  let cachedTree;
-  const cached = localStorage.getItem(CACHE_TREE_KEY);
-  if (cached) {
-    cachedTree = JSON.parse(cached);
+  const dispatchCacheAction = action => {
+    const cached: CachedPage = loadPageCache();
+    const newCache = cacheReducer(cached, action);
+    localStorage.setItem(CACHE_TREE_KEY, JSON.stringify(newCache));
+    cachedPage = newCache;
   }
 
   return (
     <FileIdDispatch.Provider value={ { fileId, dispatchFileId } }>
-      <CacheTreeDispatch.Provider value={ { cachedTree, dispatchCache } }>
+      <CacheTreeDispatch.Provider value={ { cachedPage, dispatchCacheAction } }>
         <Layout.Sider theme="light" width={275}>
           <FileTree />
         </Layout.Sider>

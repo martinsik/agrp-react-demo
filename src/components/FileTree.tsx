@@ -8,13 +8,14 @@ import { GetListDocument } from '../graphql/types';
 import { toTreeNode } from '../utils/toTreeNode';
 import { dfsTree } from '../utils/dfsTree';
 import { CacheTreeDispatch, FileIdDispatch } from '../App';
-import { TreeNode } from '../types';
+import { CacheActionTypes, TreeNode } from '../types';
 import { listFolderKeys } from '../utils/listFolderKeys';
 
 const Component: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo }) => {
   const [ treeData, setTreeData ] = useState<any>(null);
   const { fileId, dispatchFileId } = useContext(FileIdDispatch);
-  const { cachedTree, dispatchCache } = useContext(CacheTreeDispatch);
+  const { cachedPage, dispatchCacheAction } = useContext(CacheTreeDispatch);
+  const { fileTree } = cachedPage;
 
   const onLoadData: any = (selectedNode?: TreeNode) => {
     if (selectedNode?.children) {
@@ -22,7 +23,10 @@ const Component: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo }) => {
     }
 
     const set = nodes => {
-      dispatchCache(nodes);
+      dispatchCacheAction({
+        type: CacheActionTypes.FileTree,
+        payload: nodes,
+      });
       setTreeData(nodes);
     };
 
@@ -48,10 +52,10 @@ const Component: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo }) => {
       .catch(error => console.warn(error));
   }
 
-  let defaultExpandedKeys: string[] = listFolderKeys(cachedTree); 
+  let defaultExpandedKeys: string[] = listFolderKeys(fileTree || []);
   if (!treeData) {
-    if (cachedTree) {
-      setTreeData(cachedTree);
+    if (fileTree) {
+      setTreeData(fileTree);
     } else {
       onLoadData();
     }
@@ -59,8 +63,8 @@ const Component: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo }) => {
     return <Spin/>;
   }
 
-  if (cachedTree) {
-    defaultExpandedKeys = listFolderKeys(cachedTree);
+  if (fileTree) {
+    defaultExpandedKeys = listFolderKeys(fileTree);
   }
 
   const onSelect = (keys: any, event: any) => {
@@ -68,7 +72,6 @@ const Component: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo }) => {
   };
 
   const selectedKeys = fileId ? [ fileId ] : [];
-  console.log(treeData, selectedKeys, defaultExpandedKeys);
 
   return (
     <Tree.DirectoryTree

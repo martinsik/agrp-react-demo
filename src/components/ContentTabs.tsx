@@ -1,24 +1,20 @@
 import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { Spin, Menu } from 'antd';
-import { useHistory } from 'react-router-dom';
 import { ApolloConsumer } from '@apollo/react-hooks';
 import { ApolloClient } from 'apollo-boost';
+import { CloseCircleOutlined } from '@ant-design/icons';
 import cloneDeep from 'lodash/cloneDeep';
 
-import { CloseCircleOutlined } from '@ant-design/icons';
 import { GetFileDocument } from '../graphql/types';
 import { FileDetailContainer } from './FileDetail';
+import { CacheTreeDispatch, FileIdDispatch } from '../App';
 
 import styles from './ContentTabs.module.scss';
-import { FileIdDispatch } from '../App';
-
-export interface FileTabs {
-  [key: string]: string;
-}
+import { CacheActionTypes, NodeDetailsMap } from '../types';
 
 export interface ContentTabsProps {
   activeKey: string;
-  openedTabs: FileTabs;
+  openedTabs: NodeDetailsMap;
   onSelectTab?: (key: string) => void,
   onCloseTab?: (key: string) => void,
 }
@@ -44,20 +40,20 @@ export const ContentTabs: React.FC<ContentTabsProps> = ({ activeKey, openedTabs,
       <Menu onClick={ handleClick } selectedKeys={ [ activeKey ] } mode="horizontal">
         { keys.map(key => (
           <Menu.Item key={ key }>
-            { openedTabs[key] }
+            { openedTabs[key].title }
             <CloseCircleOutlined onClick={ (e) => handleClose(key, e) }/>
           </Menu.Item>
         )) }
       </Menu>
-      <FileDetailContainer fileId={ activeKey }/>
+      <FileDetailContainer fileDetail={ openedTabs[activeKey] }/>
     </div>
   );
 }
 
 const ContentTabsConnection: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo }) => {
-  const [ openedTabs, setOpenedTabs ] = useState<FileTabs>({});
-  const { fileId } = useContext(FileIdDispatch);
-  const history = useHistory();
+  const [ openedTabs, setOpenedTabs ] = useState<NodeDetailsMap>({});
+  const { fileId, dispatchFileId } = useContext(FileIdDispatch);
+  const { cachedPage, dispatchCacheAction } = useContext(CacheTreeDispatch);
 
   const fetchFile = useCallback((fileId) => {
     apollo
@@ -67,33 +63,74 @@ const ContentTabsConnection: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo
           id: fileId,
         },
       })
-      .then(result => setOpenedTabs(openedTabs => cloneDeep({ ...openedTabs, [fileId]: result.data.getFile.name })))
+      .then(result => {
+        const file = result.data.getFile;
+        setOpenedTabs(openedTabs => {
+          const cloned = cloneDeep({
+            ...openedTabs,
+            [fileId]: {
+              key: file.id,
+              title: file.name,
+            },
+          });
+          dispatchCacheAction({
+            type: CacheActionTypes.Tabs,
+            payload: cloned,
+          });
+
+          return cloned;
+        });
+      })
       .catch(error => {
-        console.warn(error);
-        setOpenedTabs(openedTabs => cloneDeep({ ...openedTabs, [fileId]: 'This file is broken.' }));
+        setOpenedTabs(openedTabs => {
+          const cloned = {
+            ...openedTabs,
+            [fileId]: {
+              key: fileId,
+              error: 'This file is broken.'
+            },
+          };
+          dispatchCacheAction({
+            type: CacheActionTypes.Tabs,
+            payload: cloned,
+          });
+
+          return cloned;
+        });
       });
-  }, [ apollo, setOpenedTabs ]);
+  }, [ apollo, setOpenedTabs, dispatchCacheAction ]);
+
+  const setOpenedTabsWrapper = useCallback(() => {
+    console.log(cachedPage.tabs);
+    if (cachedPage.tabs) {
+      setOpenedTabs(cachedPage.tabs);
+    }
+  }, [ setOpenedTabs, cachedPage ]);
 
   useEffect(() => fetchFile(fileId), [ fileId, fetchFile ]);
+  useEffect(() => setOpenedTabsWrapper(), [ setOpenedTabsWrapper ]);
 
   const handleSelectTab = (key: string) => {
-    history.push(`/${ key }`);
+    dispatchFileId(key);
   }
 
   const handleCloseTab = (key: string) => {
     delete openedTabs[key];
+    console.log(openedTabs);
     if (key === fileId) {
       const keys = Object.keys(openedTabs);
-      if (keys.length === 0) {
-        history.push('/');
-      } else {
-        history.push(`/${ keys[0] }`);
-      }
+      dispatchFileId(keys.length === 0 ? '' : keys[0]);
     }
-    setOpenedTabs(cloneDeep(openedTabs));
+
+    const cloned = cloneDeep(openedTabs);
+    dispatchCacheAction({
+      type: CacheActionTypes.Tabs,
+      payload: cloned,
+    });
+    setOpenedTabs(cloned);
   }
 
-  if (Object.keys(openedTabs).length === 0) {
+  if (!fileId || !openedTabs[fileId]) {
     return <Spin/>;
   }
 

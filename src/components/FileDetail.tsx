@@ -4,22 +4,23 @@ import { Row, Col, Spin } from 'antd';
 import { File, useGetFileQuery } from '../graphql/types';
 
 import styles from './FileDetail.module.scss';
+import { NodeDetail } from '../types';
 
-export const FileDetail: React.FC<{ fileDetail: File }> = ({ fileDetail }) => {
+export const FileDetail: React.FC<{ file: File }> = ({ file }) => {
   return (
     <Row justify="center" className={styles.FileDetail}>
       <Col span={ 12 }>
-        <h1>{ fileDetail.name }</h1>
-        { fileDetail.text }
+        <h1>{ file.name }</h1>
+        { file.text }
       </Col>
     </Row>
   );
 }
 
-export const FileDetailContainer: React.FC<{ fileId: string }> = ({ fileId }) => {
+export const FileDetailContainer: React.FC<{ fileDetail: NodeDetail }> = ({ fileDetail }) => {
   const { loading, data } = useGetFileQuery({
     variables: {
-      id: fileId,
+      id: fileDetail.key,
     },
   });
 
@@ -27,9 +28,5 @@ export const FileDetailContainer: React.FC<{ fileId: string }> = ({ fileId }) =>
     return <Spin/>;
   }
 
-  return (
-    <>
-      <FileDetail fileDetail={ data.getFile }/>
-    </>
-  );
+  return <FileDetail file={ data.getFile }/>;
 }

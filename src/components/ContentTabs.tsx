@@ -3,6 +3,7 @@ import { Spin, Menu } from 'antd';
 import { ApolloConsumer } from '@apollo/react-hooks';
 import { ApolloClient } from 'apollo-boost';
 import { CloseCircleOutlined } from '@ant-design/icons';
+import { useHistory } from 'react-router';
 import cloneDeep from 'lodash/cloneDeep';
 
 import { GetFileDocument } from '../graphql/types';
@@ -54,13 +55,14 @@ const ContentTabsConnection: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo
   const [ openedTabs, setOpenedTabs ] = useState<NodeDetailsMap>({});
   const { fileId, dispatchFileId } = useContext(FileIdDispatch);
   const { cachedPage, dispatchCacheAction } = useContext(CacheTreeDispatch);
+  const history = useHistory();
 
-  const fetchFile = useCallback((fileId) => {
+  const fetchFile = useCallback((openFileId) => {
     apollo
       .query({
         query: GetFileDocument,
         variables: {
-          id: fileId,
+          id: openFileId,
         },
       })
       .then(result => {
@@ -68,7 +70,7 @@ const ContentTabsConnection: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo
         setOpenedTabs(openedTabs => {
           const cloned = cloneDeep({
             ...openedTabs,
-            [fileId]: {
+            [openFileId]: {
               key: file.id,
               title: file.name,
             },
@@ -82,23 +84,10 @@ const ContentTabsConnection: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo
         });
       })
       .catch(error => {
-        setOpenedTabs(openedTabs => {
-          const cloned = {
-            ...openedTabs,
-            [fileId]: {
-              key: fileId,
-              error: 'This file is broken.'
-            },
-          };
-          dispatchCacheAction({
-            type: CacheActionTypes.Tabs,
-            payload: cloned,
-          });
-
-          return cloned;
-        });
+        console.warn(`Unable to load file "${fileId}"\n`, error);
+        history.goBack();
       });
-  }, [ apollo, setOpenedTabs, dispatchCacheAction ]);
+  }, [ apollo, setOpenedTabs, dispatchCacheAction, history ]);
 
   const setOpenedTabsWrapper = useCallback(() => {
     console.log(cachedPage.tabs);
@@ -116,7 +105,6 @@ const ContentTabsConnection: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo
 
   const handleCloseTab = (key: string) => {
     delete openedTabs[key];
-    console.log(openedTabs);
     if (key === fileId) {
       const keys = Object.keys(openedTabs);
       dispatchFileId(keys.length === 0 ? '' : keys[0]);

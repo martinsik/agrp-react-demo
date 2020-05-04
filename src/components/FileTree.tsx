@@ -11,7 +11,7 @@ import { CacheTreeDispatch, FileIdDispatch } from '../App';
 import { CacheActionTypes, TreeNode } from '../types';
 import { listFolderKeys } from '../utils/listFolderKeys';
 
-const Component: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo }) => {
+const FileTreeContainer: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo }) => {
   const [ treeData, setTreeData ] = useState<any>(null);
   const { fileId, dispatchFileId } = useContext(FileIdDispatch);
   const { cachedPage, dispatchCacheAction } = useContext(CacheTreeDispatch);
@@ -84,14 +84,10 @@ const Component: React.FC<{ apollo: ApolloClient<any> }> = ({ apollo }) => {
   );
 }
 
-// const FileTreeConnection: React.FC<{ }> = () => {
-//
-// }
-
 export const FileTree: React.FC<{}> = () => {
   return (
     <ApolloConsumer>
-      { apollo => <Component apollo={ apollo }/> }
+      { apollo => <FileTreeContainer apollo={ apollo }/> }
     </ApolloConsumer>
   );
 }
